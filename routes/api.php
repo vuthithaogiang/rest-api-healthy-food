@@ -25,7 +25,15 @@ Route::group(['middleware'=>'api', 'prefix'=>'auth'], function ($router){
    Route::post('/logout', [AuthController::class, 'logout']);
    Route::post('/verify-account/{token}' , [AuthController::class, 'verifyAccount']);
    Route::post('/create-otp', [AuthController::class , 'createOTP']);
+   Route::post('/check-otp', [AuthController::class, 'checkOTP']);
    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+   Route::get('/go-to-change-password', [AuthController::class, 'goToChangePassword']);
+    Route::post('/refresh', [AuthController::class, 'refresh'])->name('refresh');
+
+});
+
+Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'admin'], function ($router) {
+   Route::get('/users', [\App\Http\Controllers\UserController::class, 'getAll']);
 });
 
 

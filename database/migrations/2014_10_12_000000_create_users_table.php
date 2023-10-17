@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('password');
             $table->string('verify_token')->nullable()->unique();
             $table->rememberToken();
-            $table->string('remember_otp')->nullable()->unique();
+            $table->unsignedSmallInteger('remember_otp')->nullable()->unique();
             $table->timestamps();
         });
     }

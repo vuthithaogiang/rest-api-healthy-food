@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Models\User;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
@@ -68,7 +67,7 @@ class AuthController extends Controller
     public function login(Request $request ) {
         $validator = Validator::make($request->all(),[
             'email' => 'required|email',
-            'password' => 'required|string|min:8'
+            'password' => 'required|string'
         ]);
 
         if($validator->fails()) {
@@ -79,17 +78,20 @@ class AuthController extends Controller
              return response()->json(['error'=>'Unauthorized'], 403);
         }
 
-
         if($token = auth()->attempt($validator->validated()) ){
             $user = User::where('email', $request->get("email"))->first();
+
             if($user->email_verified_at == null) {
-                return response()->json(['error'=>'Unauthorized'], 403);
+                return response()->json(['error'=>'Your account not activate'], 400);
             }
         }
 
         return $this->createNewToken($token);
     }
 
+    public function refresh() {
+        return $this->createNewToken(auth()->refresh());
+    }
     public function createNewToken($token){
 
          return response()->json([
@@ -120,42 +122,71 @@ class AuthController extends Controller
             return response()->json(['error'=>'Unauthorized'], 403);
         }
         else{
-
             if($user->email_verified_at == null) {
                 return response()->json(['error'=>'Email is not activate'], 400);
             }
 
-            $user->remember_otp = random_int(1000, 9999);
+            if($user->remember_otp !== null) {
+                $user->remember_otp = null;
+                $user->save();
+            }
+
+            $otp = random_int(1000, 9999);
+            $user->remember_otp = $otp;
             $user->save();
 
+            Mail::send('emails.create-otp', compact(['otp', 'user']), function ($email) use($user) {
+                $email->subject('Verify OTP');
+                $email->to($user->email);
+
+            });
+
             return response()->json([
-                'email'=>$request->get('email'),
-                'remember_otp' => $user->remember_otp
+                "message" => "We have e-mailed your password reset link!"
             ]);
         }
 
     }
 
-   public function resetPassword(Request $request) {
+     public function goToChangePassword() {
+        return redirect('http://localhost:3000/fill-otp');
+     }
+
+    public function checkOTP(Request $request){
+
         $otp = $request->get('otp');
 
-        if(!$otp) {
-            return response()->json(['error'=>'Not found OTP code'], 400);
+        $validator = Validator::make($request->all(),[
+            'otp' => 'required|numeric|digits:4',
+        ]);
+
+        if($validator->fails()) {
+            return response()->json($validator->errors(), 400);
         }
 
         $user = User::where('remember_otp', $otp)->first();
 
         if(!$user) {
-            return response()->json(['error'=>'OTP not true'], 400);
+            return response()->json(['error'=>'Not true OTP'], 403);
         }
 
-        $validator = Validator::make($request->all(),[
-            'new_password' => 'required|string|confirmed|min:8'
+        return response()->json([
+            'user' => $user,
+            'otp' => $request->get('otp')
         ]);
+
+    }
+
+   public function resetPassword(Request $request) {
+        $validator = Validator::make($request->all(),[
+            'otp' =>'required|numeric|digits:4|exists:users,remember_otp',
+            'email' => 'required|email|exists:users,email',
+            'new_password' => 'required|string|confirmed|min:8']);
 
        if($validator->fails()) {
            return response()->json($validator->errors(), 400);
        }
+       $user = User::where('email', $request->get('email'))->first();
 
        $user->remember_otp = null;
        $user->password = bcrypt($request->get('new_password'));
