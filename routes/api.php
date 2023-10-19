@@ -28,7 +28,7 @@ Route::group(['middleware'=>'api', 'prefix'=>'auth'], function ($router){
    Route::post('/check-otp', [AuthController::class, 'checkOTP']);
    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
    Route::get('/go-to-change-password', [AuthController::class, 'goToChangePassword']);
-    Route::post('/refresh', [AuthController::class, 'refresh'])->name('refresh');
+    Route::post('/refresh', [AuthController::class, 'refresh']);
 
 });
 

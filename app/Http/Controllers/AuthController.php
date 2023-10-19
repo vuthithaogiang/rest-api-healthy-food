@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\User;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Tymon\JWTAuth\Facades\JWTAuth;
+
 
 class AuthController extends Controller
 {
@@ -103,7 +105,36 @@ class AuthController extends Controller
     }
 
     public function profile() {
-        return response()->json(auth()->user());
+
+        try {
+            $token = JWTAuth::parseToken();
+            $payload = $token->getPayload();
+
+            if ($payload->hasKey('exp') && $payload->get('exp') < time()) {
+                return  response()->json([
+                    'message' => 'Token has expired'
+                ], 400);
+            }
+                return response()->json(auth()->user());
+
+        } catch (\Tymon\JWTAuth\Exceptions\TokenExpiredException $e) {
+            // Token has expired
+            return  response()->json([
+                'message' => 'Token has expired'
+            ], 400);
+        } catch (\Tymon\JWTAuth\Exceptions\TokenInvalidException $e) {
+            // Token is invalid
+            return  response()->json([
+                'message' => 'Token has expired'
+            ], 400);
+        } catch (\Tymon\JWTAuth\Exceptions\JWTException $e) {
+            // Token not found in request
+            return  response()->json([
+                'message' => 'Token has expired'
+            ], 400);
+        }
+
+
     }
 
     public function  logout() {
