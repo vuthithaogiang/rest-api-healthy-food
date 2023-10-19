@@ -115,7 +115,7 @@ class AuthController extends Controller
                     'message' => 'Token has expired'
                 ], 400);
             }
-                return response()->json(auth()->user());
+            return response()->json(auth()->user());
 
         } catch (\Tymon\JWTAuth\Exceptions\TokenExpiredException $e) {
             // Token has expired
@@ -133,10 +133,7 @@ class AuthController extends Controller
                 'message' => 'Token has expired'
             ], 400);
         }
-
-
     }
-
     public function  logout() {
         auth()->logout();
 
