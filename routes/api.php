@@ -18,6 +18,7 @@ use App\Http\Controllers\AuthController;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
 Route::group(['middleware'=>'api', 'prefix'=>'auth'], function ($router){
    Route::post('/register', [AuthController::class , 'register'] );
    Route::post('/login', [AuthController::class, 'login']);
@@ -28,12 +29,19 @@ Route::group(['middleware'=>'api', 'prefix'=>'auth'], function ($router){
    Route::post('/check-otp', [AuthController::class, 'checkOTP']);
    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
    Route::get('/go-to-change-password', [AuthController::class, 'goToChangePassword']);
-    Route::post('/refresh', [AuthController::class, 'refresh']);
+   Route::post('/refresh', [AuthController::class, 'refresh']);
 
 });
 
 Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'admin'], function ($router) {
    Route::get('/users', [\App\Http\Controllers\UserController::class, 'getAll']);
+
 });
 
 
+Route::apiResource('category_products', \App\Http\Controllers\API\CategoryProductController::class);
+
+
+Route::group(['middleware'=>'api', 'prefix'=>'category-products'], function ($router){
+    Route::get('/getAll', [\App\Http\Controllers\API\CategoryProductController::class, 'index']);
+});
