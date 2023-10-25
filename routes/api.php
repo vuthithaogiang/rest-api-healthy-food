@@ -35,13 +35,20 @@ Route::group(['middleware'=>'api', 'prefix'=>'auth'], function ($router){
 
 Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'admin'], function ($router) {
    Route::get('/users', [\App\Http\Controllers\UserController::class, 'getAll']);
+});
 
+//CATEGORY PRODUCT - public
+Route::group(['middleware'=>'api', 'prefix'=>'category-product'], function ($router){
+    Route::get('/getAll', [\App\Http\Controllers\API\CategoryProductController::class, 'getAll']);
 });
 
 
-Route::apiResource('category_products', \App\Http\Controllers\API\CategoryProductController::class);
-
-
-Route::group(['middleware'=>'api', 'prefix'=>'category-products'], function ($router){
-    Route::get('/getAll', [\App\Http\Controllers\API\CategoryProductController::class, 'index']);
+//CATEGORY PRODUCT - admin
+Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'category-product'], function ($router){
+    Route::post('/store', [\App\Http\Controllers\API\CategoryProductController::class, 'store']);
+    Route::post('/edit/{id}', [\App\Http\Controllers\API\CategoryProductController::class, 'edit']);
+    Route::post('/destroy/{id}' , [\App\Http\Controllers\API\CategoryProductController::class, 'destroy']);
+    Route::post('/in-available/{id}', [\App\Http\Controllers\API\CategoryProductController::class, 'inAvailable']);
+    Route::post('/restore/{id}', [\App\Http\Controllers\API\CategoryProductController::class, 'restore']);
 });
+
