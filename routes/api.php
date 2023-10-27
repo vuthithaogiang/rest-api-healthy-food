@@ -42,7 +42,9 @@ Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'admin'], function ($r
 //CATEGORY PRODUCT - public
 Route::group(['middleware'=>'api', 'prefix'=>'category-product'], function ($router){
     Route::get('/getAll', [\App\Http\Controllers\API\CategoryProductController::class, 'getAll']);
-    Route::get('/{slug}', [\App\Http\Controllers\API\CategoryProductController::class, 'show']);
+    Route::get('/slug={slug}', [\App\Http\Controllers\API\CategoryProductController::class, 'show']);
+    Route::get('/filter', [\App\Http\Controllers\API\CategoryProductController::class, 'filter']);
+    Route::get('/search' , [\App\Http\Controllers\API\CategoryProductController::class, 'searchByName']);
 });
 
 

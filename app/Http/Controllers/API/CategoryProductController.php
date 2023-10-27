@@ -5,14 +5,101 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\CategoryProduct;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class CategoryProductController extends Controller
 {
     public function getAll() {
-        return CategoryProduct::all();
+
+        $categories = CategoryProduct::orderBy('updated_at', 'desc')->paginate(8);
+       // return CategoryProduct::all();
+
+        return response()->json($categories);
     }
+
+    public function filter(Request $request) {
+
+         $validator = Validator::make($request->all(), [
+             'status' => Rule::in([0, 1]),
+             'createdAt' => Rule::in(['asc', 'desc'])
+         ],
+             [
+                 'status' => "The 'status' parameter accepts only '0' or '1' value",
+                 'createdAt' => "The 'createdAt' parameter accepts only 'asc' or 'desc' value"
+             ]
+         );
+
+         if($validator->fails()) {
+             return response()->json([
+                 'success'=>'false',
+                 'message' => 'Get Fail',
+                 'errors' => $validator->errors()
+             ]);
+         }
+
+
+         if($request->has('status') & $request->has('createdAt')) {
+             $categories = CategoryProduct::where("status", $request->get("status"))
+                 ->orderBy("created_at", $request->get("createdAt"))->get();
+
+
+             return response()->json([
+                 'success' => 'true',
+                 'message' => "Get successfully",
+                 'data' => $categories
+             ]);
+         }
+
+        if($request->has('status') & !$request->has('createdAt')){
+             $categories =  CategoryProduct::where('status',$request->get('status'))->get();
+
+
+             return response()->json([
+                 'success' => 'true',
+                 'message' => "Get successfully",
+                 'data' => $categories
+             ]);
+        }
+
+        if($request->has('createdAt') & !$request->has("status")) {
+            $categories =  CategoryProduct::orderBy('created_at',$request->get('createdAt'))->get();
+
+
+            return response()->json([
+                'success' => 'true',
+                'message' => "Get successfully",
+                'data' => $categories
+            ]);
+        }
+
+    }
+
+    public function searchByName(Request  $request) {
+        $validator = Validator::make($request->all(), [
+            'key' => 'required|string'
+            ]);
+
+        if($validator->fails()){
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Key must be string and required',
+                'data' => []
+            ]);
+        }
+
+        $categories = CategoryProduct::where('name', 'like', '%'. $request->get('key') .'%')->get();
+
+        return response()->json([
+                'success' => "true",
+                "message" => "Get success",
+                'data' => $categories
+        ]);
+
+    }
+
 
     public function show($slug) {
        $category = CategoryProduct::where("slug", $slug)->first();
@@ -43,9 +130,8 @@ class CategoryProductController extends Controller
             return response()->json([
                 'success'=>'false',
                 'message' => 'Store category fail',
-                $validator->errors()
-                ]
-                , 400);
+               'errors' => $validator->errors()
+                ], 400);
         }
 
         $formData = $validator->validated();
