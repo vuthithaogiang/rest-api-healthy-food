@@ -14,6 +14,7 @@ class ProductThumbnails extends Model
     protected $primaryKey = "id";
 
     protected $fillable = [
+        'product_id',
         "path"
     ];
 

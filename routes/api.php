@@ -58,5 +58,20 @@ Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'category-product'], f
 });
 
 
-//PRODUCT
-Route::apiResource('product', \App\Http\Controllers\API\ProductController::class);
+//PRODUCT - public
+Route::group(['middleware'=>'api', 'prefix'=>'product'], function ($router){
+    Route::get('/get', [\App\Http\Controllers\API\ProductController::class, 'index']);
+    Route::get('/slug={slug}', [\App\Http\Controllers\API\ProductController::class, 'show']);
+
+});
+
+
+//PRODUCT - admin
+Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'product'], function ($router){
+    Route::post('/store', [\App\Http\Controllers\API\ProductController::class, 'store']);
+    Route::post('/edit/{id}', [\App\Http\Controllers\API\ProductController::class, 'edit']);
+    Route::post('/destroy/{id}' , [\App\Http\Controllers\API\ProductController::class, 'destroy']);
+
+
+});
+
