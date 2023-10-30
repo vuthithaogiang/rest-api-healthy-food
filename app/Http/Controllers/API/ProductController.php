@@ -5,7 +5,6 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\ProductThumbnails;
-use Dotenv\Validator;
 use Illuminate\Http\Request;
 use  Illuminate\Support\Facades;
 use Illuminate\Validation\Rule;
@@ -18,7 +17,12 @@ class ProductController extends Controller
      */
     public function index()
     {
-        return Product::all();
+        $products = Product::with('Thumbnails')
+            ->with('Category')
+            ->orderBy('status', 'desc')
+            ->get();
+
+        return response()->json($products);
     }
 
 
@@ -58,6 +62,7 @@ class ProductController extends Controller
             'description' => $request->get('description'),
             'price' => $request->get('price'),
             'quantity' => $request->get('quantity'),
+            'status' => $request->get('status'),
             'category_id' => $request->get('categoryId')
         ]);
 
@@ -261,7 +266,79 @@ class ProductController extends Controller
 
     }
 
+    public function filter(Request  $request) {
+         $validator = Facades\Validator::make($request->all(), [
+             'brand' => 'string',
+             'status' => Rule::in([0, 1, 2, 3, 4, 5]),
+             'categoryId' => 'exists:category_products,id',
+             'minPrice' => 'numeric',
+             'maxPrice' => 'numeric'
+         ]);
 
+         if($validator->fails()) {
+             return response()->json([
+                 'success' => 'false',
+                 'message' => 'Get fail',
+                 'errors' => $validator->errors(),
+                 'data' => []
+             ]);
+         }
+         $data = $validator->validated();
+         $query = Product::with('Thumbnails')
+             ->with('Category');
+
+         if(array_key_exists('brand', $data)) {
+             $query->where('brand', 'like', '%'. $data['brand'].'%');
+         }
+
+         if(array_key_exists('minPrice', $data)){
+             $query->where('price' , '>=' , $data['minPrice']);
+         }
+
+         if(array_key_exists('maxPrice', $data)) {
+             $query->where('price', '<=', $data['maxPrice']);
+         }
+
+         if(array_key_exists('categoryId', $data)) {
+             $query->where('category_id', $data['categoryId']);
+         }
+
+         if(array_key_exists('status', $data)) {
+             $query->where('status', $data['statusk']);
+         }
+
+         $products = $query->get();
+
+         return response()->json([
+             'success' => 'true',
+             'message' => 'Get success',
+             'data' => $products
+         ]);
+    }
+
+    public function searchByName(Request  $request) {
+        $validator = Facades\Validator::make($request->all(), [
+            'key' => 'required|string'
+        ]);
+
+        if($validator->fails()){
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Key must be string and required',
+                'data' => []
+            ]);
+        }
+
+        $products = Product::with('Thumbnails')
+            ->with('Category')->where('name', 'like', '%'. $request->get('key') .'%')->get();
+
+        return response()->json([
+            'success' => "true",
+            "message" => "Get success",
+            'data' => $products
+        ]);
+
+    }
 
 
     /**
@@ -270,6 +347,12 @@ class ProductController extends Controller
     public function destroy(string $id)
     {
         $product = Product::find($id);
+
+        $thumbs = Product::with('Thumbnails');
+        foreach ($thumbs as $thumb) {
+            Facades\Storage::disk('')->delete($thumb->path);
+            $thumb->delete();
+        }
 
         if(!$product) {
             return response()->json([

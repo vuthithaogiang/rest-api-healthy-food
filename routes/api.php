@@ -62,6 +62,8 @@ Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'category-product'], f
 Route::group(['middleware'=>'api', 'prefix'=>'product'], function ($router){
     Route::get('/get', [\App\Http\Controllers\API\ProductController::class, 'index']);
     Route::get('/slug={slug}', [\App\Http\Controllers\API\ProductController::class, 'show']);
+    Route::get('/filter', [\App\Http\Controllers\API\ProductController::class, 'filter']);
+    Route::get('/search', [\App\Http\Controllers\API\ProductController::class, 'searchByName']);
 
 });
 
@@ -73,5 +75,11 @@ Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'product'], function (
     Route::post('/destroy/{id}' , [\App\Http\Controllers\API\ProductController::class, 'destroy']);
 
 
+});
+
+//TOOL CALCULATE
+Route::group(['prefix' => 'tool'], function ($router) {
+    Route::post('/bmi', [\App\Http\Controllers\API\ToolCalculator::class, 'getBMI']);
+    Route::post('/calories-in-day', [\App\Http\Controllers\API\ToolCalculator::class, 'getCaloriesInDay']);
 });
 

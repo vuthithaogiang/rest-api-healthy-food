@@ -21,11 +21,11 @@ class AdminMiddleware
               return $next($request);
            }
            else{
-               return response()->json(['message' => 'Access Denied As You are not Admin.'], 400);
+               return response()->json(['message' => 'Access Denied As You are not Admin.'], 403);
            }
         }
         else{
-            return response()->json(['message' => 'Access Denied As You are not Admin.'], 400);
+            return response()->json(['message' => 'Access Denied As You are not Authenticated.'], 403);
         }
            return $next($request);
     }
