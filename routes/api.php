@@ -83,3 +83,20 @@ Route::group(['prefix' => 'tool'], function ($router) {
     Route::post('/calories-in-day', [\App\Http\Controllers\API\ToolCalculator::class, 'getCaloriesInDay']);
 });
 
+//TYPES OF CAMPAIGN - admin
+Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'types-of-campaign'], function ($router){
+    Route::post('/store', [\App\Http\Controllers\API\TypeOfCampaignController::class, 'store']);
+    Route::post('/edit/{id}', [\App\Http\Controllers\API\TypeOfCampaignController::class, 'edit']);
+    Route::post('/destroy/{id}' , [\App\Http\Controllers\API\TypeOfCampaignController::class, 'destroy']);
+
+
+});
+
+
+//TYPES OF CAMPAIGN - public
+Route::group(['middleware'=>'api', 'prefix'=>'types-of-campaign'], function ($router){
+    Route::get('/getAll', [\App\Http\Controllers\API\TypeOfCampaignController::class, 'getAll']);
+
+
+});
+

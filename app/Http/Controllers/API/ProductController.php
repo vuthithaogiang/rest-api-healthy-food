@@ -19,7 +19,7 @@ class ProductController extends Controller
     {
         $products = Product::with('Thumbnails')
             ->with('Category')
-            ->orderBy('status', 'desc')
+            ->orderBy('id', 'desc')
             ->get();
 
         return response()->json($products);
@@ -304,7 +304,7 @@ class ProductController extends Controller
          }
 
          if(array_key_exists('status', $data)) {
-             $query->where('status', $data['statusk']);
+             $query->where('status', $data['status']);
          }
 
          $products = $query->get();
