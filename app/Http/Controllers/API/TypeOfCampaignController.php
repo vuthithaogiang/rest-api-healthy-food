@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 class TypeOfCampaignController extends Controller
 {
     public function getAll() {
-        $typesOfCampaign =  TypeOfCampaign::all();
+        $typesOfCampaign =  TypeOfCampaign::orderBy('created_at', 'desc')->get();
 
         if(!$typesOfCampaign) {
             return response()->json([

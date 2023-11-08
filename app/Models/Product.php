@@ -18,7 +18,6 @@ class Product extends Model
         "name",
         "slug",
         "brand",
-        "main_thumbnail",
         "description",
         "price",
         "quantity",

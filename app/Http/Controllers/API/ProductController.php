@@ -247,7 +247,8 @@ class ProductController extends Controller
             'description' => $request->get('description'),
             'price' => $request->get('price'),
             'quantity' => $request->get('quantity'),
-            'category_id' => $request->get('categoryId')
+            'category_id' => $request->get('categoryId'),
+            'status' => $request->get('status')
         ]);
 
         // GET LIST THUMBS OF PRODUCT

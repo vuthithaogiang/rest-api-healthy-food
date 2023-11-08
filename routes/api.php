@@ -97,6 +97,50 @@ Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'types-of-campaign'], 
 Route::group(['middleware'=>'api', 'prefix'=>'types-of-campaign'], function ($router){
     Route::get('/getAll', [\App\Http\Controllers\API\TypeOfCampaignController::class, 'getAll']);
 
+});
+
+
+//CAMPAIGN - public
+Route::group(['middleware'=>'api', 'prefix'=>'campaign'], function ($router){
+    Route::get('/getAll', [\App\Http\Controllers\API\CampaignController::class, 'getAll']);
 
 });
 
+
+//CAMPAIGN -admin
+Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'campaign'], function ($router){
+    Route::post('/store', [\App\Http\Controllers\API\CampaignController::class, 'store']);
+    Route::post('/edit/{id}', [\App\Http\Controllers\API\CampaignController::class, 'edit']);
+    Route::post('/destroy/{id}' , [\App\Http\Controllers\API\CampaignController::class, 'destroy']);
+
+});
+
+
+//ACTIVITY - public
+Route::group(['middleware'=>'api', 'prefix'=>'activity'], function ($router){
+    Route::get('/getAll', [\App\Http\Controllers\API\ActivityController::class, 'getAll']);
+
+});
+
+//ACTIVITY - admin
+Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'activity'], function ($router){
+    Route::post('/store', [\App\Http\Controllers\API\ActivityController::class, 'store']);
+    Route::post('/edit/{id}', [\App\Http\Controllers\API\ActivityController::class, 'edit']);
+    Route::post('/destroy/{id}' , [\App\Http\Controllers\API\ActivityController::class, 'destroy']);
+
+});
+
+
+//SCHEDULE CAMPAIGN - public
+Route::group(['middleware'=>'api', 'prefix'=>'schedule-campaign'], function ($router){
+    Route::get('/getAll', [\App\Http\Controllers\API\ScheduleCampaignController::class, 'getAll']);
+
+});
+
+//SCHEDULE CAMPAIGN - admin
+Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'schedule-campaign'], function ($router){
+    Route::post('/store', [\App\Http\Controllers\API\ScheduleCampaignController::class, 'store']);
+    Route::post('/edit/{id}', [\App\Http\Controllers\API\ScheduleCampaignController::class, 'edit']);
+    Route::post('/destroy/{id}' , [\App\Http\Controllers\API\ScheduleCampaignController::class, 'destroy']);
+
+});
