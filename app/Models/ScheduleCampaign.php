@@ -19,7 +19,7 @@ class ScheduleCampaign extends Model
         "end_date"
     ];
 
-    public function Cmapaign() {
+    public function Campaign() {
         return $this->belongsTo(Campaign::class);
     }
 }

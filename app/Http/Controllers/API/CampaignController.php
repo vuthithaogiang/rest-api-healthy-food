@@ -31,7 +31,7 @@ class CampaignController extends Controller
            'description' => 'required|string',
            'channel' => 'string',
            'startDate'=> 'required|date|date_format:d-m-Y|after_or_equal:today',
-           'endDate'=>'required|date|date_format:d-m-Y|after_or_equal:today',
+           'endDate'=>'required|date|date_format:d-m-Y|after_or_equal:startDate',
            'thumb'=> 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
            'status'=>Rule::in([0, 1, 2, 3]),
            'budget' => 'numeric|min:0.01',
