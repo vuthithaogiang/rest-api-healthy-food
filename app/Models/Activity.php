@@ -15,12 +15,18 @@ class Activity extends Model
 
     protected  $fillable = [
         "name",
+        "slug",
+        "type_of_activity_id",
         "status",
         "description",
         "campaign_id"
     ];
 
     public function Campaign() {
-        return $this->belongsTo(Campaign::all());
+        return $this->belongsTo(Campaign::class);
+    }
+
+    public function TypeOf() {
+        return $this->belongsTo(TypeOfActivity::class);
     }
 }

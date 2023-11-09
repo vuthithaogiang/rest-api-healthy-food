@@ -115,6 +115,21 @@ Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'campaign'], function 
 
 });
 
+//TYPES OF ACTIVITY - public
+Route::group(['middleware'=>'api', 'prefix'=>'types-of-activity'], function ($route) {
+    Route::get('/getAll', [\App\Http\Controllers\API\TypeOfActivityController::class, 'getAll']);
+});
+
+
+
+//TYPES OF ACTIVITY - admin
+Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'types-of-activity'], function ($router){
+    Route::post('/store', [\App\Http\Controllers\API\TypeOfActivityController::class, 'store']);
+    Route::post('/edit/{id}', [\App\Http\Controllers\API\TypeOfActivityController::class, 'edit']);
+    Route::post('/destroy/{id}' , [\App\Http\Controllers\API\TypeOfActivityController::class, 'destroy']);
+
+});
+
 
 //ACTIVITY - public
 Route::group(['middleware'=>'api', 'prefix'=>'activity'], function ($router){

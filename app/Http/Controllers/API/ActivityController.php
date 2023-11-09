@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class ActivityController extends Controller
 {
@@ -14,7 +15,9 @@ class ActivityController extends Controller
     }
 
     public function store(Request  $request) {
-        return response()->json($request);
+       $validator = Validator::make($request->all(), [
+           'name'
+       ]);
     }
 
     public function edit($id, Request  $request){
