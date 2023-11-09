@@ -125,6 +125,7 @@ Route::group(['middleware'=>'api', 'prefix'=>'types-of-activity'], function ($ro
 //TYPES OF ACTIVITY - admin
 Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'types-of-activity'], function ($router){
     Route::post('/store', [\App\Http\Controllers\API\TypeOfActivityController::class, 'store']);
+
     Route::post('/edit/{id}', [\App\Http\Controllers\API\TypeOfActivityController::class, 'edit']);
     Route::post('/destroy/{id}' , [\App\Http\Controllers\API\TypeOfActivityController::class, 'destroy']);
 
@@ -140,6 +141,7 @@ Route::group(['middleware'=>'api', 'prefix'=>'activity'], function ($router){
 //ACTIVITY - admin
 Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'activity'], function ($router){
     Route::post('/store', [\App\Http\Controllers\API\ActivityController::class, 'store']);
+    Route::post('/store-multi', [\App\Http\Controllers\API\ActivityController::class, 'storeMultiData']);
     Route::post('/edit/{id}', [\App\Http\Controllers\API\ActivityController::class, 'edit']);
     Route::post('/destroy/{id}' , [\App\Http\Controllers\API\ActivityController::class, 'destroy']);
 

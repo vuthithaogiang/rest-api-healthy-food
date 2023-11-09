@@ -15,7 +15,7 @@ class CampaignController extends Controller
 {
     public function getAll() {
        $campaigns = Campaign::with('Thumbnails')
-           ->with('TypeOf')
+           ->with('TypeOfCampaign')
            ->orderBy('id','asc')
            ->get();
 

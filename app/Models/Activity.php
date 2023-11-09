@@ -13,6 +13,13 @@ class Activity extends Model
 
     protected $primaryKey = "id";
 
+    const NEW_CREATED = 0;
+    const ON_GOING = 1;
+
+    const PAUSED = 2;
+
+    const COMPLETE = 3;
+
     protected  $fillable = [
         "name",
         "slug",
@@ -26,7 +33,7 @@ class Activity extends Model
         return $this->belongsTo(Campaign::class);
     }
 
-    public function TypeOf() {
+    public function TypeOfActivity() {
         return $this->belongsTo(TypeOfActivity::class);
     }
 }

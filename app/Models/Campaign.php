@@ -32,7 +32,7 @@ class Campaign extends Model
         "budget",
         "daily_budget"
     ];
-    public function TypeOf() {
+    public function TypeOfCampaign() {
         return $this->belongsTo(TypeOfCampaign::class);
     }
 
