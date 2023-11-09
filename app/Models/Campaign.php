@@ -22,7 +22,7 @@ class Campaign extends Model
     protected  $fillable = [
         "name",
         "slug",
-        "type_campaign_id",
+        "type_of_campaign_id",
         "objective",
         "description",
         "start_date",

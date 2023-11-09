@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\Campaign;
 use App\Models\TypeOfCampaign;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
@@ -12,7 +13,9 @@ use Illuminate\Support\Str;
 class TypeOfCampaignController extends Controller
 {
     public function getAll() {
-        $typesOfCampaign =  TypeOfCampaign::orderBy('created_at', 'desc')->get();
+        $typesOfCampaign =  TypeOfCampaign::with('Campaigns')
+        ->orderBy('created_at', 'desc')->get();
+
 
         if(!$typesOfCampaign) {
             return response()->json([

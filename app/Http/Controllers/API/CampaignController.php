@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Campaign;
+use App\Models\CampaignThumbnails;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -42,7 +43,7 @@ class CampaignController extends Controller
                'success' => 'false',
                'message' => 'Request fail',
                'errors' => $validator->errors()
-           ]);
+           ], 400);
        }
 
         $slug = Str::slug($validator->validated()['name']);
@@ -55,7 +56,7 @@ class CampaignController extends Controller
         $formData['name'] = $data['name'];
         $formData['description'] = $data['description'];
         $formData['objective'] = $data['objective'];
-        $formData['type_campaign_id'] = $data['typeCampaignId'];
+        $formData['type_of_campaign_id'] = $data['typeCampaignId'];
         $formData['start_date'] = $startDate;
         $formData['end_date']= $endDate;
         $formData['slug'] = $slug;
@@ -102,18 +103,155 @@ class CampaignController extends Controller
             'message' => 'Store Campaign Successfully',
             'data' => $campaign,
             'thumbs' => $thumbnails,
-        ]);
+        ], 400);
 
     }
     public function edit($id, Request  $request) {
-        return response()->json([
-            'message' => 'Edit ' . $id
-        ]);
+       $campaign = Campaign::find($id);
+
+       if(!$campaign) {
+           return response()->json([
+               'success' => 'false',
+               'message' => 'Not found that Campaign o edit.'
+           ], 400);
+       }
+
+        $validator = Validator::make($request->all(), [
+            'status' => Rule::in([0, 1, 2, 3]),
+            'thumb' =>'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'name' => 'string|unique:campaigns,name',
+            'description' => 'string',
+            'objective' => 'string',
+            'budget' =>'numeric|min:0.01',
+            'dailyBudget' => 'numeric|min:0.01',
+            'startDate' =>'date|date_format:d-m-Y',
+            'endDate' =>'date|date_format:d-m-Y',
+            'channel' =>'string'
+        ]) ;
+
+       if($validator->fails()) {
+           return response()->json([
+               'success'=>'false',
+               'message' => 'Request fail',
+               'errors' => $validator->errors()
+           ], 400);
+       }
+
+       $data = $validator->validated();
+
+       if(array_key_exists('thumb', $data)) {
+
+           $thumbToDelete = CampaignThumbnails::where('campaign_id', $id)->first();
+
+
+           if(!$thumbToDelete) {
+
+               $imageName = time() . '_' . $data['thumb']->getClientOriginalName();
+               Facades\Storage::putFileAs('', $data['thumb'], $imageName);
+
+               $newThumb = CampaignThumbnails::create([
+                   'campaign_id' => $campaign->id,
+                   'path' => $imageName
+               ]);
+               $newThumb->save();
+
+
+           }
+           //Remove old thumb
+           else{
+               Facades\Storage::disk('')->delete($thumbToDelete->path);
+               $thumbToDelete->delete();
+
+               //create
+               $imageName = time() . '_' . $data['thumb']->getClientOriginalName();
+               Facades\Storage::putFileAs('', $data['thumb'], $imageName);
+
+               $newThumb = CampaignThumbnails::create([
+                   'campaign_id' => $campaign->id,
+                   'path' => $imageName
+               ]);
+               $newThumb->save();
+
+           }
+
+
+        }
+
+       $formData = [];
+
+       if(array_key_exists('name', $data)) {
+           $formData['name'] = $data['name'];
+           $slug = Str::slug($data['name']);
+           $formData['slug'] = $slug;
+       }
+
+       if(array_key_exists('objective', $data)) {
+           $formData['objective'] = $data['objective'];
+       }
+
+       if(array_key_exists('description', $data)) {
+           $formData['description'] = $data['description'];
+       }
+
+       if(array_key_exists('budget', $data)) {
+           $formData['budget'] = $data['budget'];
+       }
+       if(array_key_exists('dailyBudget', $data)) {
+           $formData['daily_budget'] = $data['dailyBudget'];
+       }
+
+       if(array_key_exists('channel', $data)) {
+           $formData['channel'] = $data['channel'];
+       }
+
+       if(array_key_exists('startDate', $data)) {
+           $startDate = date('Y-m-d', strtotime($data['startDate']));
+           $formData['start_date'] = $startDate;
+
+       }
+       if(array_key_exists('endDate', $data)) {
+           $endDate = date('Y-m-d', strtotime($data['endDate']));
+           $formData['end_date'] = $endDate;
+
+       }
+
+       $campaign->update($formData);
+
+        // GET LIST THUMBS OF PRODUCT
+        $thumbnails = Facades\DB::table('campaigns')
+            ->join('campaign_thumbnails', 'campaigns.id', '=', 'campaign_thumbnails.campaign_id')
+            ->where('campaign_thumbnails.campaign_id','=', $campaign->id)
+            ->select( 'campaign_thumbnails.*')
+            ->get();
+
+       return response()->json([
+           'success' => 'true',
+           'message' => 'Edit success',
+           'data' => $campaign,
+           'thumbs' => $thumbnails
+       ], 201);
     }
 
     public function destroy($id ) {
+        $campaign = Campaign::find($id);
+
+        if(!$campaign) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Not Found'
+            ], 400);
+        }
+
+        $thumbs = Campaign::with('Thumbnails');
+        foreach ($thumbs as $thumb) {
+            Facades\Storage::disk('')->delete($thumb->path);
+            $thumb->delete();
+        }
+
+        $campaign->delete();
         return response()->json([
-            'message' => 'Delete ' . $id
-        ]);
+            'success' => 'true',
+            'message' => 'Delete success'
+        ], 201);
     }
 }
