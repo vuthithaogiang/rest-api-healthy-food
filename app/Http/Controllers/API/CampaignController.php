@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\Activity;
+use App\Models\ActivityScheduleCampaign;
 use App\Models\Campaign;
 use App\Models\CampaignThumbnails;
+use App\Models\ScheduleCampaign;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -230,6 +233,225 @@ class CampaignController extends Controller
            'data' => $campaign,
            'thumbs' => $thumbnails
        ], 201);
+    }
+
+
+    public function addActivityToScheduleCampaign($id, Request  $request) {
+        $campaign = Campaign::find($id);
+
+        if(!$campaign){
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Not Found'
+            ], 400);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'startDate' => 'required|date|date_format:d-m-Y|before_or_equal:endDate',
+            'endDate' => 'required|date|date_format:d-m-Y|after_or_equal:startDate',
+            'multiActivity.*' => 'distinct_entries:multiActivity|array|required',
+            'multiActivity.*.name' => 'required|string|distinct',
+            'multiActivity.*.description' => 'string',
+            'multiActivity.*.typeOfActivityId' => 'required|exists:types_of_activity,id'
+        ]);
+
+        if($validator->fails()){
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Request Fail',
+                'errors' => $validator->errors()
+            ], 400);
+        }
+
+        $data = $validator->validated();
+
+        $startDateCampaign = $campaign->start_date;
+        $endDateCampaign = $campaign->end_date;
+
+        $startDateSchedule = date('Y-m-d', strtotime($data['startDate']));
+        $endDateSchedule = date('Y-m-d', strtotime($data['endDate']));
+
+
+        //CHECK DATE FROM - TO IN SCHEDULE
+        $error = [];
+        if( ($startDateSchedule < $startDateCampaign) | ($startDateSchedule > $endDateCampaign)) {
+                $error['start_date'] = 'The start date must be equal or after start date Campaign';
+        }
+
+        if( ($endDateSchedule > $endDateCampaign) | ($endDateSchedule < $startDateCampaign)){
+                $error['end_date'] = 'The end date must be equal or before end date Campaign';
+        }
+
+        if($startDateSchedule > $endDateSchedule) {
+                $error['duplicate'] = "Start date must before or equal end date";
+        }
+
+        if(array_key_exists('start_date', $error) | array_key_exists('end_date', $error)
+        | array_key_exists('duplicate', $error)) {
+            return response()->json([
+                'success' => 'false',
+                'message' => "Date invalid",
+                'errors' => $error
+            ], 400);
+        }
+
+        // GET MULTI ACTIVITY IN REQUEST
+        $multiData = $request->input('multiActivity');
+
+        $activitiesExisted = [];
+        $activitiesNew = [];
+
+        foreach ($multiData as $activity) {
+            $activityExisted = Activity::where('name', $activity['name'])
+                ->where('type_of_activity_id', $activity['typeOfActivityId'])
+                ->first();
+
+             if(!$activityExisted) {
+                 $activitiesNew[] = $activity;
+             }
+             else{
+                 $activitiesExisted[] = $activityExisted;
+            }
+
+        }
+
+
+        // SELECT SCHEDULE EXIST
+        $scheduleExisted = ScheduleCampaign::where('campaign_id', $campaign->id)
+            ->where('start_date', '=',  $startDateSchedule)
+            ->where('end_date', '=' ,  $endDateSchedule)
+            ->first();
+
+        if(!$scheduleExisted) {
+
+            // Create new Schedule in Campaign
+            $createSchedule  = ScheduleCampaign::create([
+                'campaign_id' => $campaign->id,
+                'start_date' => $startDateSchedule,
+                'end_date' => $endDateSchedule
+            ]);
+
+            $createSchedule->save();
+
+            //Store
+            if($activitiesNew != []) {
+                foreach ($activitiesNew as $newActivity) {
+                    $formData['name'] = $newActivity['name'];
+                    $formData['slug'] = Str::slug(($formData['name']));
+                    $formData['campaign_id'] = $campaign->id;
+                    $formData['type_of_activity_id'] = $newActivity['typeOfActivityId'];
+
+                    if(array_key_exists('description', $newActivity)) {
+                        $formData['description'] = $newActivity['description'];
+                    }
+
+                    $activityCreated =  Activity::create($formData);
+                    $activityCreated->save();
+
+                    Facades\DB::table('activity_schedule_campaigns')->insert([
+                        'activity_id' => $activityCreated->id,
+                        'schedule_campaign_id' => $createSchedule->id
+                    ]);
+
+
+                }
+
+            }
+
+            if($activitiesExisted != []) {
+               foreach ($activitiesExisted as $exitActivity) {
+                   Facades\DB::table('activity_schedule_campaigns')->insert([
+                       'activity_id' => $exitActivity->id,
+                       'schedule_campaign_id' => $createSchedule->id
+                   ]);
+               }
+            }
+
+            // GET LIST ACTIVITY IN SCHEDULE
+            $getActivities = Facades\DB::table('activities')
+                ->join('activity_schedule_campaigns', 'activities.id', '=', 'activity_schedule_campaigns.activity_id')
+                ->join('schedules_campaign', 'activity_schedule_campaigns.schedule_campaign_id', '=', 'schedules_campaign.id')
+                ->where('schedules_campaign.id','=', $createSchedule->id)
+                ->where('activities.campaign_id', '=', $campaign->id)
+                ->select( 'activities.*')
+                ->get();
+
+
+            return response()->json([
+                'success' => 'true',
+                'message' => "Create Schedule Activity success",
+                'data' => $campaign,
+                'schedule' => ScheduleCampaign::find($createSchedule->id),
+                'activities' => $getActivities
+            ], 201);
+
+
+        }
+        else{
+            //Store
+            if($activitiesNew != []) {
+                foreach ($activitiesNew as $newActivity) {
+                    $formData['name'] = $newActivity['name'];
+                    $formData['slug'] = Str::slug(($formData['name']));
+                    $formData['campaign_id'] = $campaign->id;
+                    $formData['type_of_activity_id'] = $newActivity['typeOfActivityId'];
+
+                    if(array_key_exists('description', $newActivity)) {
+                        $formData['description'] = $newActivity['description'];
+                    }
+
+                    $activityCreated =  Activity::create($formData);
+                    $activityCreated->save();
+
+
+                    Facades\DB::table('activity_schedule_campaigns')->insert([
+                        'activity_id' => $activityCreated->id,
+                        'schedule_campaign_id' => $scheduleExisted->id
+                    ]);
+
+                }
+
+            }
+
+            if($activitiesExisted != []) {
+                foreach ($activitiesExisted as $exitActivity) {
+                    $existedActivitySchedule = Facades\DB::table('activity_schedule_campaigns')
+                        ->where('activity_id', '=', $exitActivity->id)
+                        ->where('schedule_campaign_id', '=', $scheduleExisted->id)
+                        ->first();
+
+                    if(! $existedActivitySchedule){
+                        Facades\DB::table('activity_schedule_campaigns')->insert([
+                            'activity_id' => $exitActivity->id,
+                            'schedule_campaign_id' => $scheduleExisted->id
+                        ]);
+                    }
+                    else{
+                        continue;
+                    }
+                }
+            }
+
+            // GET LIST ACTIVITY IN SCHEDULE
+            $getActivities = Facades\DB::table('activities')
+                ->join('activity_schedule_campaigns', 'activities.id', '=', 'activity_schedule_campaigns.activity_id')
+                ->join('schedules_campaign', 'activity_schedule_campaigns.schedule_campaign_id', '=', 'schedules_campaign.id')
+                ->where('schedules_campaign.id','=', $scheduleExisted->id)
+                ->where('activities.campaign_id', '=', $campaign->id)
+                ->select( 'activities.*')
+                ->get();
+
+
+            return response()->json([
+                'success' => 'true',
+                'message' => "Create Schedule Activity success",
+                'data' => $campaign,
+                'schedule' => ScheduleCampaign::find($scheduleExisted->id),
+                'activities' => $getActivities
+            ], 201);
+
+        }
+
     }
 
     public function destroy($id ) {

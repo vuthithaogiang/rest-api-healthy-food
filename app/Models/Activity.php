@@ -36,4 +36,6 @@ class Activity extends Model
     public function TypeOfActivity() {
         return $this->belongsTo(TypeOfActivity::class);
     }
+
+
 }

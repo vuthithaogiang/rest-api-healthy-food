@@ -87,8 +87,6 @@ class ScheduleCampaignController extends Controller
                 $error[] = "Start date must before or equal end date";
             }
 
-
-            if($startDateSchedule )
             return response()->json([
               'success' => 'false',
                 'message' => "Date invalid",

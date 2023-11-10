@@ -22,4 +22,5 @@ class ScheduleCampaign extends Model
     public function Campaign() {
         return $this->belongsTo(Campaign::class);
     }
+
 }

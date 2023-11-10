@@ -112,6 +112,7 @@ Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'campaign'], function 
     Route::post('/store', [\App\Http\Controllers\API\CampaignController::class, 'store']);
     Route::post('/edit/{id}', [\App\Http\Controllers\API\CampaignController::class, 'edit']);
     Route::post('/destroy/{id}' , [\App\Http\Controllers\API\CampaignController::class, 'destroy']);
+    Route::post('/store-activity-schedule/{id}', [\App\Http\Controllers\API\CampaignController::class, 'addActivityToScheduleCampaign']);
 
 });
 
