@@ -31,11 +31,11 @@ class CampaignController extends Controller
            'name' => 'required|string|unique:campaigns,name',
            'objective' => 'required|string',
            'typeCampaignId' => 'required|exists:types_of_campaign,id',
-           'description' => 'required|string',
+           'description' => 'string',
            'channel' => 'string',
            'startDate'=> 'required|date|date_format:d-m-Y|after_or_equal:today',
            'endDate'=>'required|date|date_format:d-m-Y|after_or_equal:startDate',
-           'thumb'=> 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+           'thumb'=> 'image|mimes:jpeg,png,jpg,gif|max:2048',
            'status'=>Rule::in([0, 1, 2, 3]),
            'budget' => 'numeric|min:0.01',
            'dailyBudget' => 'numeric|min:0.01'
@@ -57,7 +57,6 @@ class CampaignController extends Controller
         $data = $validator->validated();
 
         $formData['name'] = $data['name'];
-        $formData['description'] = $data['description'];
         $formData['objective'] = $data['objective'];
         $formData['type_of_campaign_id'] = $data['typeCampaignId'];
         $formData['start_date'] = $startDate;
@@ -66,6 +65,10 @@ class CampaignController extends Controller
 
         if(array_key_exists('budget', $data)){
             $formData['budget'] = $data['budget'];
+        }
+
+        if(array_key_exists('description', $data)) {
+            $formData['description'] = $data['description'];
         }
 
         if(array_key_exists('dailyBudget', $data)){
