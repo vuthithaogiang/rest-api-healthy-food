@@ -113,12 +113,13 @@ Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'campaign'], function 
     Route::post('/edit/{id}', [\App\Http\Controllers\API\CampaignController::class, 'edit']);
     Route::post('/destroy/{id}' , [\App\Http\Controllers\API\CampaignController::class, 'destroy']);
     Route::post('/store-activity-schedule/{id}', [\App\Http\Controllers\API\CampaignController::class, 'addActivityToScheduleCampaign']);
-
+    Route::post('/check-name', [\App\Http\Controllers\API\CampaignController::class, 'checkCampaignNameIsExisted']);
 });
 
 //TYPES OF ACTIVITY - public
 Route::group(['middleware'=>'api', 'prefix'=>'types-of-activity'], function ($route) {
     Route::get('/getAll', [\App\Http\Controllers\API\TypeOfActivityController::class, 'getAll']);
+    Route::get('/get-by-campaign/{id}', [\App\Http\Controllers\API\TypeOfActivityController::class, 'getAllByCampaign']);
 });
 
 

@@ -457,6 +457,25 @@ class CampaignController extends Controller
 
     }
 
+    public function checkCampaignNameIsExisted (Request  $request) {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|unique:campaigns,name'
+        ]);
+
+        if($validator->fails()) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Name is existed.'
+            ], 400);
+        }
+        else{
+            return response()->json([
+                'success' => 'true',
+                'message' => 'Name is validate.'
+            ], 200);
+        }
+    }
+
     public function destroy($id ) {
         $campaign = Campaign::find($id);
 

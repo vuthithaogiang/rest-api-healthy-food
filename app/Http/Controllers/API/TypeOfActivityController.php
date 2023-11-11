@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\Activity;
+use App\Models\Campaign;
 use App\Models\TypeOfActivity;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -13,6 +16,79 @@ class TypeOfActivityController extends Controller
     public function getAll() {
         $allTypes = TypeOfActivity::all();
         return response()->json($allTypes);
+
+    }
+
+    public function getAllByCampaign($id, Request $request) {
+        $campaign = Campaign::find($id);
+
+        if(!$campaign) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Not found campaign',
+
+            ], 400);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'typeOfActivityId' => 'exists:types_of_activity,id'
+        ]);
+
+        if($validator->fails()) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Not Found activity id'
+            ], 400);
+        }
+        $data = $validator->validated();
+
+        if(array_key_exists('typeOfActivityId', $data)) {
+            $typeActivity = TypeOfActivity::find($data['typeOfActivityId']);
+
+            $activities = Activity::where('campaign_id', '=', $campaign->id)
+                ->where('type_of_activity_id', '=', $typeActivity->id)->get();
+
+            $typeActivity['activities'] = $activities;
+
+            return response()->json([
+                'success' => 'true',
+                'message' => 'Get data success',
+                'data' => $typeActivity
+
+            ], 200);
+        }
+        else{
+            $allType = TypeOfActivity::all();
+            $data = [];
+
+            foreach ($allType as $type) {
+                $typeActivity = $type;
+
+                $activities = Activity::where('campaign_id', '=', $campaign->id)
+                    ->where('type_of_activity_id', '=', $typeActivity->id)->get();
+
+                if(count($activities) == 0) {
+                    continue;
+                }
+                $typeActivity['activities'] = $activities;
+                $data[] = $typeActivity;
+
+            }
+
+            if($data !== []) {
+                return response()->json([
+                    'success' => 'true',
+                    'message' => 'Get data success',
+                    'data' => $data
+                ], 200);
+            }
+            else{
+                return response()->json([
+                    'success' => 'false',
+                    'message' => 'This Campaign currently have not Activity'
+                ], 400);
+            }
+        }
 
     }
 
