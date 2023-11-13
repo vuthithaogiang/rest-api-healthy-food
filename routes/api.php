@@ -103,7 +103,9 @@ Route::group(['middleware'=>'api', 'prefix'=>'types-of-campaign'], function ($ro
 //CAMPAIGN - public
 Route::group(['middleware'=>'api', 'prefix'=>'campaign'], function ($router){
     Route::get('/getAll', [\App\Http\Controllers\API\CampaignController::class, 'getAll']);
-
+    Route::get('/get-schedule-activity/{id}', [\App\Http\Controllers\API\CampaignController::class, 'getScheduleActivities']);
+    Route::post('/filter', [\App\Http\Controllers\API\CampaignController::class, 'getFilter']);
+    Route::get('/slug={slug}', [\App\Http\Controllers\API\CampaignController::class, 'getBySlug']);
 });
 
 
@@ -114,6 +116,7 @@ Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'campaign'], function 
     Route::post('/destroy/{id}' , [\App\Http\Controllers\API\CampaignController::class, 'destroy']);
     Route::post('/store-activity-schedule/{id}', [\App\Http\Controllers\API\CampaignController::class, 'addActivityToScheduleCampaign']);
     Route::post('/check-name', [\App\Http\Controllers\API\CampaignController::class, 'checkCampaignNameIsExisted']);
+    Route::post('/update-status/{id}', [\App\Http\Controllers\API\CampaignController::class, 'switchStatus']);
 });
 
 //TYPES OF ACTIVITY - public
@@ -153,6 +156,7 @@ Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'activity'], function 
 //SCHEDULE CAMPAIGN - public
 Route::group(['middleware'=>'api', 'prefix'=>'schedule-campaign'], function ($router){
     Route::get('/getAll', [\App\Http\Controllers\API\ScheduleCampaignController::class, 'getAll']);
+
 
 });
 

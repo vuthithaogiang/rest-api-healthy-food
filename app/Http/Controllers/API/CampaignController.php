@@ -4,7 +4,6 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Activity;
-use App\Models\ActivityScheduleCampaign;
 use App\Models\Campaign;
 use App\Models\CampaignThumbnails;
 use App\Models\ScheduleCampaign;
@@ -19,10 +18,132 @@ class CampaignController extends Controller
     public function getAll() {
        $campaigns = Campaign::with('Thumbnails')
            ->with('TypeOfCampaign')
+           ->with('Activities')
            ->orderBy('id','asc')
            ->get();
 
        return response()->json($campaigns);
+    }
+
+    public function getBySlug($slug ) {
+        $campaign = Campaign::with('Thumbnails')
+            ->with('TypeOfCampaign')
+            ->where('slug', '=' , $slug)
+            ->first();
+
+        if(!$campaign) {
+            return response()->json([
+                'success' =>'false',
+                'message' => 'Not Found'
+            ], 400);
+        }
+
+        return response()->json([
+            'success' => 'true',
+            'message' => 'Get Campaign success',
+            'data' => $campaign
+        ], 200);
+    }
+
+    public function getFilter(Request  $request) {
+
+        $validator = Validator::make($request->all(), [
+            'status' => Rule::in([0, 1, 2, 3]),
+            'fromDate' =>'date|date_format:d-m-Y',
+            'toDate' =>'date|date_format:d-m-Y',
+            'typeOfCampaignId' => 'exists:types_of_campaign,id',
+            'key'=>'string'
+        ]) ;
+
+        if($validator->fails()) {
+            return  response()->json([
+                'success' => 'false',
+                'message' => 'Request fail',
+                'errors' =>  $validator->errors()
+            ], 400);
+        }
+
+        $data = $validator->validated();
+
+        $query = Campaign::with('Thumbnails')
+            ->with('TypeOfCampaign')
+            ->with('Activities');
+
+        if(array_key_exists('status', $data)) {
+          $query->where('status', '=', $data['status']);
+        }
+
+        if(array_key_exists('typeOfCampaignId', $data)) {
+            $query->where('type_of_campaign_id', '=', $data['typeOfCampaignId']);
+        }
+
+        if(array_key_exists('fromDate', $data)){
+
+            $startDateSchedule = date('Y-m-d', strtotime($data['fromDate']));
+            $query->where('start_date' , '<=' , $startDateSchedule)
+                ->where('end_date', '>=', $startDateSchedule);
+        }
+
+        if(array_key_exists('toDate', $data)) {
+            $endDateSchedule = date('Y-m-d', strtotime($data['toDate']));
+            $query->where('start_date' , '<=' , $endDateSchedule)
+                ->where('end_date', '>=', $endDateSchedule);
+        }
+
+        if(array_key_exists('key', $data)) {
+
+            $query->where('name', 'like', '%'. $data['key'].'%');
+
+        }
+
+        $campaigns =  $query->get();
+
+            return response()->json([
+                'success' => 'true',
+                'message' => 'Get Campaign success',
+                'data' => $campaigns
+            ], 200);
+
+
+
+    }
+
+    public function switchStatus($id, Request  $request) {
+        $campaign = Campaign::find($id);
+
+        if(!$campaign) {
+            return response()->json([
+                'success' => 'false',
+                'message' =>'Not found Campaign'
+            ], 400);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'status' => [ 'required' ,Rule::in([0, 1, 2, 3])]
+        ]);
+
+
+        if($validator->fails()) {
+            return response()->json([
+                'success' =>'false',
+                'message' =>'Request Fail',
+                'errors' => $validator->errors()
+            ], 400);
+        }
+
+        $data = $validator->validated();
+
+
+        $campaign->update([
+            'status' => $data['status']
+        ]);
+
+        return response()->json([
+            'success' => 'true',
+            'message' => 'Switch status Campaign success',
+            'data' => $campaign
+        ], 200);
+
     }
 
     public function store(Request $request) {
@@ -109,7 +230,7 @@ class CampaignController extends Controller
             'message' => 'Store Campaign Successfully',
             'data' => $campaign,
             'thumbs' => $thumbnails,
-        ], 400);
+        ], 200);
 
     }
     public function edit($id, Request  $request) {
@@ -118,7 +239,7 @@ class CampaignController extends Controller
        if(!$campaign) {
            return response()->json([
                'success' => 'false',
-               'message' => 'Not found that Campaign o edit.'
+               'message' => 'Not found that Campaign to edit.'
            ], 400);
        }
 
@@ -132,7 +253,8 @@ class CampaignController extends Controller
             'dailyBudget' => 'numeric|min:0.01',
             'startDate' =>'date|date_format:d-m-Y',
             'endDate' =>'date|date_format:d-m-Y',
-            'channel' =>'string'
+            'channel' =>'string',
+            'typeOfCampaignId' => 'exists:types_of_campaign,id'
         ]) ;
 
        if($validator->fails()) {
@@ -221,6 +343,15 @@ class CampaignController extends Controller
 
        }
 
+       if(array_key_exists('status', $data)) {
+           $formData['status'] = $data['status'];
+
+        }
+
+       if(array_key_exists('typeOfCampaignId', $data)) {
+           $formData['type_of_campaign_id'] = $data['typeOfCampaignId'];
+       }
+
        $campaign->update($formData);
 
         // GET LIST THUMBS OF PRODUCT
@@ -238,6 +369,42 @@ class CampaignController extends Controller
        ], 201);
     }
 
+    public function getScheduleActivities($id) {
+        $campaign = Campaign::find($id);
+
+        if(!$campaign) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Not Found Campaign'
+            ], 400);
+        }
+
+
+        $schedules =  ScheduleCampaign::where('campaign_id', '=', $campaign->id)->get();
+        $data  = [];
+        foreach ($schedules as $time) {
+            $timetable = $time;
+
+            $activities = Facades\DB::table('activities')
+                ->join('activity_schedule_campaigns', 'activities.id', '=', 'activity_schedule_campaigns.activity_id')
+                ->join('schedules_campaign', 'activity_schedule_campaigns.schedule_campaign_id', '=', 'schedules_campaign.id')
+                ->where('schedules_campaign.id','=', $time->id)
+                ->where('activities.campaign_id', '=', $campaign->id)
+                ->select( 'activities.*')
+                ->get();
+
+            $timetable['activities'] = $activities;
+
+           $data[] = $timetable;
+        }
+
+        return response()->json([
+            'success' => 'true',
+            'message' => 'Get data success',
+            'data' => $data
+        ], 200);
+
+    }
 
     public function addActivityToScheduleCampaign($id, Request  $request) {
         $campaign = Campaign::find($id);
@@ -379,13 +546,15 @@ class CampaignController extends Controller
                 ->select( 'activities.*')
                 ->get();
 
+            $data = $campaign;
+            $data['schedule'] = ScheduleCampaign::find($createSchedule->id);
+            $data['schedule']['activities'] = $getActivities;
 
             return response()->json([
                 'success' => 'true',
                 'message' => "Create Schedule Activity success",
-                'data' => $campaign,
-                'schedule' => ScheduleCampaign::find($createSchedule->id),
-                'activities' => $getActivities
+                'data' => $data,
+
             ], 201);
 
 
@@ -444,13 +613,14 @@ class CampaignController extends Controller
                 ->select( 'activities.*')
                 ->get();
 
+            $data = $campaign;
+            $data['schedule'] = ScheduleCampaign::find($scheduleExisted->id);
+            $data['schedule']['activities'] = $getActivities;
 
             return response()->json([
                 'success' => 'true',
                 'message' => "Create Schedule Activity success",
-                'data' => $campaign,
-                'schedule' => ScheduleCampaign::find($scheduleExisted->id),
-                'activities' => $getActivities
+                'data' => $data
             ], 201);
 
         }
@@ -486,6 +656,24 @@ class CampaignController extends Controller
             ], 400);
         }
 
+        $activities = Activity::where('campaign_id', '=', $campaign->id)->get();
+
+        if(count($activities) > 0) {
+            return response()->json([
+                'success'=> 'false',
+                'message' => 'Can not delete because exist Activity in this Campaign'
+            ], 401);
+        }
+
+        $schedule = ScheduleCampaign::where('campaign_id', '=', $campaign->id)->get();
+
+        if(count($schedule) > 0) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Can not delete because exist Schedule in this Campaign'
+            ], 401);
+        }
+
         $thumbs = Campaign::with('Thumbnails');
         foreach ($thumbs as $thumb) {
             Facades\Storage::disk('')->delete($thumb->path);
@@ -495,7 +683,7 @@ class CampaignController extends Controller
         $campaign->delete();
         return response()->json([
             'success' => 'true',
-            'message' => 'Delete success'
+            'message' => 'Delete Campaign successfully'
         ], 201);
     }
 }
