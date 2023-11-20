@@ -30,7 +30,8 @@ class Campaign extends Model
         "channel",
         "status",
         "budget",
-        "daily_budget"
+        "daily_budget",
+        "goal_donate"
     ];
     public function TypeOfCampaign() {
         return $this->belongsTo(TypeOfCampaign::class);
@@ -46,6 +47,14 @@ class Campaign extends Model
 
     public function ScheduleCampaign() {
         return $this->hasMany(ScheduleCampaign::class);
+    }
+
+    public function Donations () {
+        return $this->hasMany(Donation::class);
+    }
+
+    public function TargetBudgets() {
+        return $this->hasMany(TargetBudget::class);
     }
 
 }

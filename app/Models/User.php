@@ -23,7 +23,8 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
         'name',
         'email',
         'password',
-        'verify_token'
+        'verify_token',
+        'avatar'
 
     ];
 
@@ -54,5 +55,9 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
     public function getJWTCustomClaims()
     {
         return [];
+    }
+
+    public function Donations() {
+        return $this->hasMany(Donation::class);
     }
 }

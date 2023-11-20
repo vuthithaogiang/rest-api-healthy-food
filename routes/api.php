@@ -88,8 +88,6 @@ Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'types-of-campaign'], 
     Route::post('/store', [\App\Http\Controllers\API\TypeOfCampaignController::class, 'store']);
     Route::post('/edit/{id}', [\App\Http\Controllers\API\TypeOfCampaignController::class, 'edit']);
     Route::post('/destroy/{id}' , [\App\Http\Controllers\API\TypeOfCampaignController::class, 'destroy']);
-
-
 });
 
 
@@ -106,6 +104,8 @@ Route::group(['middleware'=>'api', 'prefix'=>'campaign'], function ($router){
     Route::get('/get-schedule-activity/{id}', [\App\Http\Controllers\API\CampaignController::class, 'getScheduleActivities']);
     Route::post('/filter', [\App\Http\Controllers\API\CampaignController::class, 'getFilter']);
     Route::get('/slug={slug}', [\App\Http\Controllers\API\CampaignController::class, 'getBySlug']);
+    Route::get('/activities-by-type/{id}', [\App\Http\Controllers\API\CampaignController::class, 'getActivitiesByType']);
+    Route::get('/recommends/{id}', [\App\Http\Controllers\API\CampaignController::class, 'getItemsRecommend']);
 });
 
 
@@ -117,6 +117,9 @@ Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'campaign'], function 
     Route::post('/store-activity-schedule/{id}', [\App\Http\Controllers\API\CampaignController::class, 'addActivityToScheduleCampaign']);
     Route::post('/check-name', [\App\Http\Controllers\API\CampaignController::class, 'checkCampaignNameIsExisted']);
     Route::post('/update-status/{id}', [\App\Http\Controllers\API\CampaignController::class, 'switchStatus']);
+    Route::post('/update-activity/{id}', [\App\Http\Controllers\API\CampaignController::class ,'editActivityInCampaign']);
+    Route::post('/update-schedule/{id}', [\App\Http\Controllers\API\CampaignController::class , 'editDateInSchedule']);
+    Route::post('/remove-activity-in-schedule/{id}' , [\App\Http\Controllers\API\CampaignController::class, 'removeActivityInSchedule']);
 });
 
 //TYPES OF ACTIVITY - public
@@ -141,6 +144,7 @@ Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'types-of-activity'], 
 Route::group(['middleware'=>'api', 'prefix'=>'activity'], function ($router){
     Route::get('/getAll', [\App\Http\Controllers\API\ActivityController::class, 'getAll']);
 
+
 });
 
 //ACTIVITY - admin
@@ -149,6 +153,8 @@ Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'activity'], function 
     Route::post('/store-multi', [\App\Http\Controllers\API\ActivityController::class, 'storeMultiData']);
     Route::post('/edit/{id}', [\App\Http\Controllers\API\ActivityController::class, 'edit']);
     Route::post('/destroy/{id}' , [\App\Http\Controllers\API\ActivityController::class, 'destroy']);
+    Route::post('/check-name', [\App\Http\Controllers\API\ActivityController::class, 'checkNameActivityIsExisted']);
+    Route::post('/update-status/{id}', [\App\Http\Controllers\API\ActivityController::class, 'switchStatus']);
 
 });
 
@@ -167,3 +173,16 @@ Route::group(['middleware'=>['api', 'isAdmin'], 'prefix'=>'schedule-campaign'], 
     Route::post('/destroy/{id}' , [\App\Http\Controllers\API\ScheduleCampaignController::class, 'destroy']);
 
 });
+
+
+// POSTS - authenticate user
+Route::group(['middleware' => ['jwt'], 'prefix' => 'post'], function ($route) {
+    Route::post('/store', [\App\Http\Controllers\API\PostController::class, 'store']);
+});
+
+
+//POST - admin
+
+
+
+//POST - public

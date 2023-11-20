@@ -45,6 +45,65 @@ class CampaignController extends Controller
         ], 200);
     }
 
+    public function getItemsRecommend($id){
+         $campaign = Campaign::find($id);
+
+         if(!$campaign) {
+             return response()->json([
+                 'success' => 'false',
+                 'message' => 'Get failure'
+                 ], 400);
+         }
+
+         $result = Campaign::with('Thumbnails')
+             ->with('TypeOfCampaign')
+             ->with('Activities')
+             ->where('id', '!=', $campaign->id)
+             ->take(6)
+             ->get();
+
+         return response()->json([
+             'success' => 'true',
+             'message' => 'Get data success',
+              'data' => $result
+         ],200);
+    }
+
+    public function getActivitiesByType($id, Request  $request) {
+        $campaign = Campaign::find($id);
+
+        if(!$campaign) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Not Found that Campaign'
+            ], 400);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'typeOfActivityId' => 'required|exists:types_of_activity,id'
+        ]);
+
+        if($validator->fails()) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Id type activity fail',
+                'errors' => $validator->errors()
+            ], 400);
+        }
+
+        $data = $validator->validated();
+
+        $activities = Activity::where('campaign_id', '=', $campaign->id)
+            ->where('type_of_activity_id', '=', $data['typeOfActivityId'])
+            ->get();
+
+        return  response()->json([
+            'success' => 'true',
+            'message' => 'Get success',
+            'data' => $activities
+        ], 200);
+    }
+
     public function getFilter(Request  $request) {
 
         $validator = Validator::make($request->all(), [
@@ -159,7 +218,8 @@ class CampaignController extends Controller
            'thumb'=> 'image|mimes:jpeg,png,jpg,gif|max:2048',
            'status'=>Rule::in([0, 1, 2, 3]),
            'budget' => 'numeric|min:0.01',
-           'dailyBudget' => 'numeric|min:0.01'
+           'dailyBudget' => 'numeric|min:0.01',
+           'goalDonate' => 'numeric|min:0.01'
        ]);
 
        if($validator->fails()){
@@ -202,6 +262,10 @@ class CampaignController extends Controller
 
         if(array_key_exists('channel', $data)){
             $formData['channel'] = $data['channel'];
+        }
+
+        if($data['typeCampaignId'] == 8 && array_key_exists('goalDonate' , $data)) {
+            $formData['goal_donate'] = $data['goalDonate'];
         }
 
         $campaign = Campaign::create($formData);
@@ -380,7 +444,9 @@ class CampaignController extends Controller
         }
 
 
-        $schedules =  ScheduleCampaign::where('campaign_id', '=', $campaign->id)->get();
+        $schedules =  ScheduleCampaign::where('campaign_id', '=', $campaign->id)
+            ->orderBy('start_date', 'asc')
+            ->get();
         $data  = [];
         foreach ($schedules as $time) {
             $timetable = $time;
@@ -403,6 +469,259 @@ class CampaignController extends Controller
             'message' => 'Get data success',
             'data' => $data
         ], 200);
+
+    }
+
+    public function editDateInSchedule($id , Request  $request) {
+        $campaign = Campaign::find($id);
+
+        if(!$campaign) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Not found Campaign to edit'
+            ], 400);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'startDate' => 'required|date|date_format:d-m-Y',
+            'endDate' => 'required|date|date_format:d-m-Y',
+            'scheduleCampaignId' => 'required|exists:schedules_campaign,id'
+        ]);
+
+        if($validator->fails()) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Request fail',
+                'errors' => $validator->errors()
+            ], 400);
+        }
+
+        $data = $validator->validated();
+
+        $scheduleEdit = ScheduleCampaign::find($data['scheduleCampaignId']);
+
+        if($scheduleEdit->campaign_id != $campaign->id) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'This Schedule not belong to Campaign'
+            ], 400);
+        }
+
+        $startDateSchedule = date('Y-m-d', strtotime($data['startDate']));
+        $endDateSchedule = date('Y-m-d', strtotime($data['endDate']));
+
+        if($scheduleEdit->start_date == $startDateSchedule && $scheduleEdit->end_date == $endDateSchedule) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Nothing to update'
+            ], 400);
+        }
+
+        $startDateCampaign = $campaign->start_date;
+        $endDateCampaign = $campaign->end_date;
+
+        //CHECK DATE FROM - TO IN SCHEDULE
+        $error = [];
+        if( ($startDateSchedule < $startDateCampaign) | ($startDateSchedule > $endDateCampaign)) {
+            $error['start_date'] = 'The start date must be equal or after start date Campaign';
+        }
+
+        if( ($endDateSchedule > $endDateCampaign) | ($endDateSchedule < $startDateCampaign)){
+            $error['end_date'] = 'The end date must be equal or before end date Campaign';
+        }
+
+        if($startDateSchedule > $endDateSchedule) {
+            $error['duplicate'] = "Start date must before or equal end date";
+        }
+
+        if(array_key_exists('start_date', $error) | array_key_exists('end_date', $error)
+            | array_key_exists('duplicate', $error)) {
+            return response()->json([
+                'success' => 'false',
+                'message' => "Date invalid",
+                'errors' => $error
+            ], 400);
+        }
+
+
+        $existsSchedule = ScheduleCampaign::where('campaign_id', '=', $campaign->id)
+            ->where('id', '!=' , $scheduleEdit->id)
+            ->whereDate('start_date', '=', $startDateSchedule)
+            ->whereDate('end_date', '=', $endDateSchedule)
+            ->get();
+
+      //  $existed = ScheduleCampaign::whereDate('start_date', '=' , $startDateSchedule)->get();
+
+        if(count($existsSchedule) > 0) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Conflict other Schedule'
+            ], 400);
+        }
+
+
+        $scheduleEdit->update([
+            'start_date' => $startDateSchedule,
+            'end_date' => $endDateSchedule
+        ]);
+
+        return response()->json([
+            'success' => 'true',
+            'message' => 'Edit success'
+        ], 201);
+    }
+
+
+    public function editActivityInCampaign($id, Request  $request) {
+        $campaign = Campaign::find($id) ;
+
+        if(!$campaign) {
+            return response()->json([
+                'success' =>  'false',
+                'message' => 'Not found Campaign'
+            ], 400);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'activityId' => 'required|exists:activities,id',
+            'name' => 'string|unique:activities,name',
+            'status' => Rule::in([0, 1, 2, 3]),
+            'description' =>'string',
+            'typeOfActivityId' => Rule::in([1, 3])
+        ]);
+
+        if($validator->fails()) {
+            return response()->json([
+                'success' => 'false',
+                'message' =>  'Request fail',
+                'errors' => $validator->errors()
+            ], 400);
+        }
+
+        $data = $validator->validated();
+
+
+        $activityEdit = Activity::find($data['activityId']);
+
+        if($activityEdit->campaign_id != $campaign->id) {
+            return response()->json([
+                'success' =>'false',
+                'message' => 'This activity  not belong to Campaign'
+            ], 400);
+        }
+
+        if(!array_key_exists('name', $data) & !array_key_exists('description', $data)
+        & !array_key_exists('typeOfActivityId', $data) ){
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Nothing to update'
+            ], 400);
+        }
+
+        $formData = [];
+
+        if(array_key_exists('name', $data)) {
+            $formData['name'] = $data['name'];
+            $formData['slug'] = Str::slug($formData['name']);
+        }
+        if(array_key_exists('description', $data)) {
+            $formData['description'] = $data['description'];
+        }
+
+        if(array_key_exists('typeOfActivityId', $data)) {
+            $formData['type_of_activity_id'] = $data['typeOfActivityId'];
+
+        }
+
+        if(array_key_exists('status', $data)) {
+            $formData['status'] = $data['status'];
+        }
+
+        $activityEdit->update($formData);
+
+        return response()->json([
+            'success' => 'true',
+            'message' => 'Edit success'
+        ], 201);
+    }
+
+    public function removeActivityInSchedule($id, Request  $request) {
+        $campaign = Campaign::find($id);
+
+        if(!$campaign) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Not found Campaign'
+            ], 400);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'activityId' => 'required|exists:activities,id',
+            'scheduleCampaignId' => 'required|exists:schedules_campaign,id'
+        ]);
+
+
+        if($validator->fails()) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Request failure',
+                'errors' => $validator->errors()
+            ], 400);
+        }
+
+        $data = $validator->validated();
+
+        $activity = Activity::find($data['activityId']);
+        $schedule = ScheduleCampaign::find($data['scheduleCampaignId']);
+
+        if($activity->campaign_id != $campaign->id) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'This Activity not belong to Campaign'
+            ], 400);
+        }
+
+        if($schedule->campaign_id != $campaign->id) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'This Schedule not  belong to Campaign'
+            ], 400);
+        }
+
+        if($activity->status == 1 | $activity->status == 2 | $activity->status == 3) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Can not delete activity has been going on'
+            ], 400);
+
+        }
+
+        $result = Facades\DB::table('activity_schedule_campaigns')
+            ->select('activity_schedule_campaigns.*')
+            ->where('activity_id', '=', $activity->id)
+            ->where('schedule_campaign_id', '=', $schedule->id)
+            ->get();
+
+        if(count($result) == 0) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'That activity does not on going in Schedule'
+            ], 400);
+        }
+
+
+        Facades\DB::table('activity_schedule_campaigns')
+            ->where('activity_id', '=', $activity->id)
+            ->where('schedule_campaign_id', '=', $schedule->id)
+            ->delete();
+
+        $activity->delete();
+
+        return response()->json([
+            'success' => 'true',
+            'message' => 'Delete success'
+        ], 201);
+
 
     }
 
@@ -461,7 +780,7 @@ class CampaignController extends Controller
             return response()->json([
                 'success' => 'false',
                 'message' => "Date invalid",
-                'errors' => $error
+                'dateErrors' => $error
             ], 400);
         }
 

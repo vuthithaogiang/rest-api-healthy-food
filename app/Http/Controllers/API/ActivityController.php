@@ -55,6 +55,60 @@ class ActivityController extends Controller
        ], 201);
     }
 
+    public function checkNameActivityIsExisted(Request  $request) {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|unique:activities,name'
+        ]);
+
+        if($validator->fails()) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'The name is conflict with another Activity'
+            ], 400);
+        }
+        else{
+            return response()->json([
+                'success' => 'true',
+                'message' => 'Name is valid.'
+            ], 200);
+        }
+    }
+
+    public function switchStatus($id, Request  $request) {
+        $activity = Activity::find($id);
+
+        if(!$activity) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Not found Activity'
+            ], 400);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'status' => ['required', Rule::in([0, 1, 2, 3])]
+        ]);
+
+        if($validator->fails()) {
+            return response()->json([
+                'success' => 'false',
+                'message' => 'Request failure',
+                'errors' => $validator->errors()
+            ], 400);
+        }
+
+        $data = $validator->validated();
+
+        $activity->update([
+            'status' => $data['status']
+        ]);
+
+
+        return response()->json([
+            'success' => 'true',
+            'message' => 'Update status success'
+        ], 200);
+    }
+
     public function storeMultiData(Request $request){
         $validator = Validator::make($request->all(), [
             'multiActivity.*' => 'distinct_entries:multiActivity|array|required',
